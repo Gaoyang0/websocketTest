@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+    <input type="text" id="message" value="Hello world!"/>
+    <button type="button" id="click_link">点击连接</button>
+    <button type="button" id="send_message">发送消息</button>
+    <button type="button" id="close_websocket">关闭websocket</button>
+</body>
+<script>
+    var chatSocket;
+    document.querySelector('#click_link').onclick = function(e) {
+        var roomName = 'test';
+        chatSocket= new WebSocket(
+            'ws://' + "127.0.0.1:8000" +
+            '/websocket/test/' + roomName + '/');
+        console.log(chatSocket);
+        chatSocket.onopen = function(e) {
+            if (typeof(chatSocket) == "undefined") {
+                console.log("chatSocket未赋值或实例化!");
+            }else if(judgeWSState(chatSocket.readyState)) {
+                console.log("建立连接!");
+            }else{
+                console.log("连接建立失败!");
+            }
+        };
+
+        chatSocket.onerror = function(e) {
+            console.log("onerror");
+        };
+
+        chatSocket.onmessage = function(e) {
+            console.log("接受到服务器的信息!");
+            var data = JSON.parse(e.data);
+            if (data['flag']=='res'){
+                var message = data['message'];
+                console.log("接收:"+message);
+            }
+        };
+
+        chatSocket.onclose = function(e) {
+            console.log("连接已关闭!");
+            console.error('Chat socket closed unexpectedly');
+        };
+
+    };
+    document.querySelector('#send_message').onclick = function(e) {
+        console.log("点击发送!");
+        if (typeof(chatSocket) == "undefined") {
+            console.log("chatSocket未赋值或实例化!");
+        }else if(judgeWSState(chatSocket.readyState)){
+            var messageInputDom = document.querySelector('#message');
+            console.log(messageInputDom.value);
+            var message = messageInputDom.value;
+            chatSocket.send(JSON.stringify({
+                "flag": "upload",
+                'message': message
+            }));
+            messageInputDom.value = '';
+        }else{
+            console.log("连接出现问题!");
+        }
+    };
+    document.querySelector('#close_websocket').onclick = function(e) {
+        if (typeof(chatSocket) == "undefined") {
+            console.log("连接未建立!");
+        }else{
+            chatSocket.close();
+        }
+    };
+    // 判断连接状态
+    function judgeWSState(ws_state) {
+        switch (ws_state) {
+            case WebSocket.CONNECTING:
+                console.log("连接正在进行中，但还未建立");
+                return false;
+            case WebSocket.OPEN:
+                console.log("连接已经建立。消息可以在客户端和服务器之间传递");
+                return true;
+            case WebSocket.CLOSING:
+                console.log("连接正在进行关闭握手");
+                return false;
+            case WebSocket.CLOSED:
+                console.log("连接已经关闭，不能打开");
+                return false;
+            default:
+                console.log("状态码错误");
+                return false;
+        }
+    };
+</script>
+</html>
